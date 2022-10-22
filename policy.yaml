@@ -1,0 +1,11 @@
+policy:
+- name: global
+  resources:
+  - s3
+  - ec2
+  caseinsenstive: false
+  keys:
+  - "Name"
+  - "Contact"
+  - "Environment"
+  - "Team"

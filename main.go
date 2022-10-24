@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 
@@ -20,15 +21,24 @@ type Policy struct {
 	} `yaml:"policy"`
 }
 
-func GetVeaverData(rawdata []byte) *Policy {
-	// Get Veaver Data Struct
+func GetPolicyData(filePath string) *Policy {
+	// Read Policy Config file.
+	yamlFile, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		log.Printf("yamlFile.Get err   #%v ", err)
+	}
+
 	var data *Policy
-	data_err := yaml.Unmarshal(rawdata, &data)
+	data_err := yaml.Unmarshal(yamlFile, &data)
 
 	if data_err != nil {
 		log.Fatal(data_err)
 	}
 	return data
+}
+
+func GetPolicyKeys(PolicyObject *Policy) []string {
+	return PolicyObject.Policy[0].Keys
 }
 
 func ListBucket(svc *s3.S3) (buckets []*s3.Bucket) {
@@ -79,8 +89,47 @@ func GetBucketNameList(Buckets []*s3.Bucket) []string {
 	return BucketNameList
 }
 
+func contains(elems []string, v string) bool {
+	ContainsFlag := false
+	for _, s := range elems {
+		if v == s {
+			fmt.Println("Comparing: ", v, " : ", s)
+			ContainsFlag = true
+		}
+	}
+	return ContainsFlag
+}
+
+func S3TagFinder(svc *s3.S3, BucketNameList, PolicyTagList []string) ([]string, []string) {
+	var TagCheck bool
+	var TaggedS3Bucket, UnTaggedS3Bucket []string
+	for _, S3Bucket := range BucketNameList {
+		fmt.Println("\n\n")
+		fmt.Println("Bucket Name: ", S3Bucket)
+		S3BucketTagList := GetS3TagKeys(svc, S3Bucket)
+		for index, PolicyTag := range PolicyTagList {
+			fmt.Println("Policy Tag: ", index, " ", PolicyTag)
+			TagCheck = contains(S3BucketTagList, PolicyTag)
+			if TagCheck == false {
+				fmt.Println("TagCheck Failed.")
+				UnTaggedS3Bucket = append(UnTaggedS3Bucket, S3Bucket)
+				break
+			} else {
+				fmt.Println("TagCheck Success.")
+			}
+			if len(PolicyTagList) == index && TagCheck == true {
+				fmt.Println("TagCheck Passed.")
+				TaggedS3Bucket = append(TaggedS3Bucket, S3Bucket)
+			}
+		}
+	}
+	return TaggedS3Bucket, UnTaggedS3Bucket
+}
+
 func main() {
 	VarCheck()
+
+	PolicyObject := GetPolicyData("policy.yaml")
 	conf := aws.Config{Region: aws.String(AWS_REGION)}
 
 	sess, err := session.NewSession(&conf)
@@ -91,9 +140,7 @@ func main() {
 	svc := s3.New(sess)
 	Buckets := ListBucket(svc)
 	BucketNameList := GetBucketNameList(Buckets)
-	for _, S3Bucket := range BucketNameList {
-		fmt.Println("Bucket Name:", S3Bucket)
-		S3BucketList := GetS3TagKeys(svc, S3Bucket)
-		fmt.Println("Bucket Tags:", S3BucketList)
-	}
+	Tagged, UnTagged := S3TagFinder(svc, BucketNameList, GetPolicyKeys(PolicyObject))
+
+	fmt.Println("Final Tagged:", Tagged, "Final UnTagged:", UnTagged)
 }

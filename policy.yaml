@@ -1,23 +1,15 @@
 policy:
 - name: global
   resources:
+  - workspaces
   - s3
   - ec2
-  - elb
+  - elbv
   - elb-targetgroup
-  - lambda
-  - rds
-  - rdscluster
-  - db-snapshot
-  - reservedinstance
-  - route53-hostedzone
-  - route53-domain
-  - sns-topic
   - sqs
-  - workspaces
-  - cloudtrail
-  - cloudfront:distribution
-  - cloudfront:streamingdistribution
+  - lambda-functions
+  - rds
+  - route53-hostedzone
   - ec2-eip
   - ec2-image
   - ec2-internetgateway
@@ -26,6 +18,23 @@ policy:
   - ec2-reserverinstances
   - ec2-routetable
   - ec2-securitygroup
+  
+  - rdscluster
+  - db-snapshot
+  - reservedinstance
+  - route53-domain
+  - sns-topic
+  - cloudtrail
+  - cloudfront:distribution
+  - cloudfront:streamingdistribution
+
+
+
+
+
+
+
+
   - ec2-snapshot
   - ec2-vpc
   - ec2-subnet
